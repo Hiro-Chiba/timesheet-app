@@ -9,7 +9,7 @@ import { startOfDay, endOfDay } from "date-fns";
 // --- Authentication ---
 
 export async function login(formData: FormData) {
-  const email = formData.get("email") as string;
+  const email = (formData.get("email") as string | null)?.toLowerCase();
   const password = formData.get("password") as string;
 
   if (!email || !password) {
@@ -46,6 +46,49 @@ export async function login(formData: FormData) {
   }
 
   return { error: "メールアドレスまたはパスワードが間違っています" };
+}
+
+export async function register(formData: FormData) {
+  const name = (formData.get("name") as string | null)?.trim();
+  const email = (formData.get("email") as string | null)?.toLowerCase();
+  const password = formData.get("password") as string | null;
+
+  if (!name || !email || !password) {
+    return { error: "名前、メールアドレス、パスワードを入力してください" };
+  }
+
+  if (password.length < 8) {
+    return { error: "パスワードは8文字以上にしてください" };
+  }
+
+  try {
+    const existingUser = await prisma.user.findUnique({ where: { email } });
+    if (existingUser) {
+      return { error: "このメールアドレスは既に登録されています" };
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = await prisma.user.create({
+      data: {
+        name,
+        email,
+        password: hashedPassword,
+        role: "user",
+      },
+    });
+
+    (await cookies()).set("auth_token", user.id, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    });
+
+    redirect("/");
+  } catch (error) {
+    console.error("Register error:", error);
+    return { error: "登録に失敗しました。時間をおいて再度お試しください" };
+  }
 }
 
 

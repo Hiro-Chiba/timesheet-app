@@ -4,14 +4,15 @@ import type { NextRequest } from "next/server";
 export function middleware(request: NextRequest) {
   const token = request.cookies.get("auth_token");
   const isLoginPage = request.nextUrl.pathname === "/login";
+  const isRegisterPage = request.nextUrl.pathname === "/register";
 
   // If no token and not on login page, redirect to login
-  if (!token && !isLoginPage) {
+  if (!token && !isLoginPage && !isRegisterPage) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // If token exists and on login page, redirect to home
-  if (token && isLoginPage) {
+  // If token exists and on login or register page, redirect to home
+  if (token && (isLoginPage || isRegisterPage)) {
     return NextResponse.redirect(new URL("/", request.url));
   }
 
