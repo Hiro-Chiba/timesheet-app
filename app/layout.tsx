@@ -12,7 +12,7 @@ export const metadata: Metadata = {
 };
 
 import { cookies } from "next/headers";
-import { logout } from "./actions";
+import { logout } from "./actions/auth";
 import { Button } from "@/components/ui/Button";
 
 export const dynamic = "force-dynamic";

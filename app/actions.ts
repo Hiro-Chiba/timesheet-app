@@ -48,10 +48,7 @@ export async function login(formData: FormData) {
   return { error: "メールアドレスまたはパスワードが間違っています" };
 }
 
-export async function logout() {
-  (await cookies()).delete("auth_token");
-  redirect("/login");
-}
+
 
 export async function getCurrentUser() {
   const token = (await cookies()).get("auth_token")?.value;
