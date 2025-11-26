@@ -1,6 +1,9 @@
 import HomeClient from "@/components/HomeClient";
 import { getTodayAttendance } from "@/app/actions";
 
+
+export const dynamic = 'force-dynamic';
+
 export default async function Home() {
   const attendance = await getTodayAttendance();
   
