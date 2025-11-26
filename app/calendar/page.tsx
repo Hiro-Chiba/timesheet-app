@@ -2,19 +2,46 @@
 
 import { Button } from "@/components/ui/Button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/Card";
-import { useTimeStore } from "@/lib/store";
-import { addMonths, eachDayOfInterval, endOfMonth, format, getDay, isSameDay, isSameMonth, startOfMonth, subMonths } from "date-fns";
+import { addMonths, eachDayOfInterval, endOfMonth, format, getDay, isSameDay, startOfMonth, subMonths } from "date-fns";
 import { ja } from "date-fns/locale";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getAllShifts, addShift, deleteShift, getCurrentUser } from "@/app/actions";
+import { useRouter } from "next/navigation";
+
+type Shift = {
+  id: string;
+  userId: string;
+  date: string;
+  startTime: string;
+  endTime: string;
+  user: {
+    name: string | null;
+  };
+};
 
 export default function CalendarPage() {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("18:00");
+  const [shifts, setShifts] = useState<Shift[]>([]);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const router = useRouter();
 
-  const { shifts, addShift, deleteShift } = useTimeStore();
+  useEffect(() => {
+    const fetchData = async () => {
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const [fetchedShifts, user] = await Promise.all([
+        getAllShifts(year, month),
+        getCurrentUser()
+      ]);
+      setShifts(fetchedShifts as Shift[]);
+      if (user) setCurrentUserId(user.id);
+    };
+    fetchData();
+  }, [currentDate]);
 
   const monthStart = startOfMonth(currentDate);
   const monthEnd = endOfMonth(currentDate);
@@ -29,33 +56,61 @@ export default function CalendarPage() {
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
-    // Pre-fill if exists
+    // Pre-fill if exists for CURRENT USER
     const dateStr = format(date, "yyyy-MM-dd");
-    const existingShift = shifts.find(s => s.date === dateStr);
-    if (existingShift) {
-      setStartTime(existingShift.startTime);
-      setEndTime(existingShift.endTime);
+    const myShift = shifts.find(s => s.date === dateStr && s.userId === currentUserId);
+    
+    if (myShift) {
+      setStartTime(myShift.startTime);
+      setEndTime(myShift.endTime);
     } else {
       setStartTime("09:00");
       setEndTime("18:00");
     }
   };
 
-  const handleSaveShift = () => {
+  const handleSaveShift = async () => {
     if (!selectedDate) return;
     const dateStr = format(selectedDate, "yyyy-MM-dd");
-    addShift(dateStr, startTime, endTime);
-    setSelectedDate(null); // Close selection
+    try {
+      await addShift(dateStr, startTime, endTime);
+      
+      // Refresh data
+      const year = currentDate.getFullYear();
+      const month = currentDate.getMonth();
+      const fetchedShifts = await getAllShifts(year, month);
+      setShifts(fetchedShifts as Shift[]);
+      
+      setSelectedDate(null);
+      router.refresh();
+    } catch (error) {
+      console.error("Failed to save shift", error);
+      alert("シフトの保存に失敗しました");
+    }
   };
 
-  const handleDeleteShift = () => {
-    if (!selectedDate) return;
+  const handleDeleteShift = async () => {
+    if (!selectedDate || !currentUserId) return;
     const dateStr = format(selectedDate, "yyyy-MM-dd");
-    const existingShift = shifts.find(s => s.date === dateStr);
-    if (existingShift) {
-      deleteShift(existingShift.id);
+    const myShift = shifts.find(s => s.date === dateStr && s.userId === currentUserId);
+    
+    if (myShift) {
+      try {
+        await deleteShift(myShift.id);
+        
+        // Refresh data
+        const year = currentDate.getFullYear();
+        const month = currentDate.getMonth();
+        const fetchedShifts = await getAllShifts(year, month);
+        setShifts(fetchedShifts as Shift[]);
+        
+        setSelectedDate(null);
+        router.refresh();
+      } catch (error) {
+        console.error("Failed to delete shift", error);
+        alert("シフトの削除に失敗しました");
+      }
     }
-    setSelectedDate(null);
   };
 
   return (
@@ -89,7 +144,7 @@ export default function CalendarPage() {
             ))}
             {daysInMonth.map((date) => {
               const dateStr = format(date, "yyyy-MM-dd");
-              const shift = shifts.find(s => s.date === dateStr);
+              const dayShifts = shifts.filter(s => s.date === dateStr);
               const isSelected = selectedDate && isSameDay(date, selectedDate);
               const isToday = isSameDay(date, new Date());
 
@@ -98,19 +153,25 @@ export default function CalendarPage() {
                   key={dateStr}
                   onClick={() => handleDateClick(date)}
                   className={`
-                    h-24 p-2 rounded-md border cursor-pointer transition-colors relative
+                    h-24 p-1 rounded-md border cursor-pointer transition-colors relative overflow-y-auto
                     ${isSelected ? "ring-2 ring-blue-500 border-transparent z-10" : "border-gray-100 hover:border-blue-200"}
                     ${isToday ? "bg-blue-50/30" : "bg-white"}
                   `}
                 >
-                  <div className={`text-sm font-medium ${getDay(date) === 0 ? "text-red-500" : getDay(date) === 6 ? "text-blue-500" : "text-gray-700"}`}>
+                  <div className={`text-xs font-medium mb-1 ${getDay(date) === 0 ? "text-red-500" : getDay(date) === 6 ? "text-blue-500" : "text-gray-700"}`}>
                     {format(date, "d")}
                   </div>
-                  {shift && (
-                    <div className="mt-2 text-xs bg-blue-100 text-blue-700 p-1 rounded text-center">
-                      {shift.startTime} - {shift.endTime}
-                    </div>
-                  )}
+                  <div className="space-y-1">
+                    {dayShifts.map((shift) => (
+                      <div 
+                        key={shift.id} 
+                        className={`text-[10px] p-1 rounded truncate ${shift.userId === currentUserId ? "bg-blue-100 text-blue-700" : "bg-gray-100 text-gray-700"}`}
+                        title={`${shift.user.name || 'Unknown'}: ${shift.startTime}-${shift.endTime}`}
+                      >
+                        {shift.user.name || 'User'}: {shift.startTime}-{shift.endTime}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               );
             })}
@@ -122,7 +183,7 @@ export default function CalendarPage() {
       <div className="lg:w-80">
         <Card className="sticky top-24">
           <CardHeader>
-            <CardTitle className="text-lg">シフト編集</CardTitle>
+            <CardTitle className="text-lg">シフト編集 (自分)</CardTitle>
           </CardHeader>
           <CardContent>
             {selectedDate ? (

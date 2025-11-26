@@ -196,6 +196,70 @@ export async function endBreak() {
   }
 }
 
+export async function getRecentAttendance() {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  if (user.id === "demo_user_id") return [];
+
+  try {
+    const records = await prisma.attendance.findMany({
+      where: { userId: user.id },
+      orderBy: { date: 'desc' },
+      take: 3,
+    });
+    return records;
+  } catch (error) {
+    console.error("Error fetching recent attendance:", error);
+    return [];
+  }
+}
+
+export async function updateAttendance(
+  date: string,
+  startTime: string | null,
+  endTime: string | null,
+  breakStartTime: string | null,
+  breakEndTime: string | null
+) {
+  const user = await getCurrentUser();
+  if (!user || user.id === "demo_user_id") return;
+
+  try {
+    // Helper to combine date string and time string into ISO Date
+    const toDate = (timeStr: string | null) => {
+      if (!timeStr) return null;
+      return new Date(`${date}T${timeStr}`);
+    };
+
+    await prisma.attendance.upsert({
+      where: {
+        userId_date: {
+          userId: user.id,
+          date: date,
+        },
+      },
+      update: {
+        startTime: toDate(startTime),
+        endTime: toDate(endTime),
+        breakStartTime: toDate(breakStartTime),
+        breakEndTime: toDate(breakEndTime),
+      },
+      create: {
+        userId: user.id,
+        date: date,
+        startTime: toDate(startTime),
+        endTime: toDate(endTime),
+        breakStartTime: toDate(breakStartTime),
+        breakEndTime: toDate(breakEndTime),
+        status: 'left', // Default to left if manually creating past record
+      },
+    });
+  } catch (error) {
+    console.error("Update attendance error:", error);
+    throw error;
+  }
+}
+
 // --- Shifts ---
 
 export async function getShifts(year: number, month: number) {
@@ -221,6 +285,35 @@ export async function getShifts(year: number, month: number) {
     return shifts;
   } catch (error) {
     console.error("Error fetching shifts:", error);
+    return [];
+  }
+}
+
+export async function getAllShifts(year: number, month: number) {
+  const user = await getCurrentUser();
+  if (!user) return [];
+  if (user.id === "demo_user_id") return [];
+
+  const startDate = new Date(year, month, 1).toISOString().split('T')[0];
+  const endDate = new Date(year, month + 1, 0).toISOString().split('T')[0];
+
+  try {
+    const shifts = await prisma.shift.findMany({
+      where: {
+        date: {
+          gte: startDate,
+          lte: endDate,
+        },
+      },
+      include: {
+        user: {
+          select: { name: true },
+        },
+      },
+    });
+    return shifts;
+  } catch (error) {
+    console.error("Error fetching all shifts:", error);
     return [];
   }
 }
