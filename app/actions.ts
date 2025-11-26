@@ -6,6 +6,14 @@ import { redirect } from "next/navigation";
 import prisma from "@/lib/prisma";
 import { startOfDay, endOfDay } from "date-fns";
 
+const allowedRoles = ["admin", "manager", "user"] as const;
+type AllowedRole = (typeof allowedRoles)[number];
+
+const normalizeRole = (role: string | null): AllowedRole => {
+  const lower = role?.toLowerCase();
+  return allowedRoles.includes(lower as AllowedRole) ? (lower as AllowedRole) : "user";
+};
+
 // --- Authentication ---
 
 export async function login(formData: FormData) {
@@ -52,6 +60,7 @@ export async function register(formData: FormData) {
   const name = (formData.get("name") as string | null)?.trim();
   const email = (formData.get("email") as string | null)?.toLowerCase();
   const password = formData.get("password") as string | null;
+  const role = normalizeRole(formData.get("role") as string | null);
 
   if (!name || !email || !password) {
     return { error: "名前、メールアドレス、パスワードを入力してください" };
@@ -73,7 +82,7 @@ export async function register(formData: FormData) {
         name,
         email,
         password: hashedPassword,
-        role: "user",
+        role,
       },
     });
 
@@ -88,6 +97,33 @@ export async function register(formData: FormData) {
   } catch (error) {
     console.error("Register error:", error);
     return { error: "登録に失敗しました。時間をおいて再度お試しください" };
+  }
+}
+
+export async function updateProfile(formData: FormData) {
+  const user = await getCurrentUser();
+  if (!user) {
+    return { error: "ログインが必要です" };
+  }
+
+  const name = (formData.get("name") as string | null)?.trim();
+  const role = normalizeRole(formData.get("role") as string | null);
+
+  if (!name) {
+    return { error: "名前を入力してください" };
+  }
+
+  try {
+    const updated = await prisma.user.update({
+      where: { id: user.id },
+      data: { name, role },
+      select: { id: true, name: true, role: true, email: true },
+    });
+
+    return { success: true, user: updated };
+  } catch (error) {
+    console.error("Update profile error:", error);
+    return { error: "プロフィールの更新に失敗しました" };
   }
 }
 
