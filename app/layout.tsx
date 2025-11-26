@@ -15,6 +15,8 @@ import { cookies } from "next/headers";
 import { logout } from "./actions";
 import { Button } from "@/components/ui/Button";
 
+export const dynamic = "force-dynamic";
+
 // ... (imports)
 
 export default async function RootLayout({
