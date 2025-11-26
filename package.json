@@ -9,6 +9,9 @@
     "lint": "next lint",
     "test": "jest"
   },
+  "prisma": {
+    "seed": "ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts"
+  },
   "dependencies": {
     "@prisma/client": "^5.22.0",
     "@types/bcryptjs": "^3.0.0",
