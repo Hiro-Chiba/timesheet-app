@@ -53,10 +53,10 @@ export async function login(formData: FormData) {
 export async function getCurrentUser() {
   const token = (await cookies()).get("auth_token")?.value;
   if (!token) return null;
-  
+
   // Demo fallback
   if (token === "demo_user_id") {
-      return { id: "demo_user_id", name: "山田 太郎", email: "admin@example.com", role: "admin" };
+    return { id: "demo_user_id", name: "山田 太郎", email: "admin@example.com", role: "admin" };
   }
 
   try {
@@ -70,16 +70,67 @@ export async function getCurrentUser() {
   }
 }
 
+// --- Demo data helpers ---
+
+type DemoAttendance = {
+  date: string;
+  startTime: string | null;
+  endTime: string | null;
+  breakStartTime: string | null;
+  breakEndTime: string | null;
+  status: "working" | "break" | "left";
+};
+
+async function getDemoAttendanceStore() {
+  const cookieStore = await cookies();
+  const raw = cookieStore.get("demo_attendance")?.value;
+  return raw ? (JSON.parse(raw) as Record<string, DemoAttendance>) : {};
+}
+
+async function setDemoAttendanceStore(data: Record<string, DemoAttendance>) {
+  const cookieStore = await cookies();
+  cookieStore.set("demo_attendance", JSON.stringify(data), {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    maxAge: 60 * 60 * 24 * 7,
+    path: "/",
+  });
+}
+
+async function updateDemoAttendance(
+  date: string,
+  update: Partial<DemoAttendance>
+) {
+  const store = await getDemoAttendanceStore();
+  const existing = store[date] ?? {
+    date,
+    startTime: null,
+    endTime: null,
+    breakStartTime: null,
+    breakEndTime: null,
+    status: "left" as const,
+  };
+
+  store[date] = { ...existing, ...update } as DemoAttendance;
+  await setDemoAttendanceStore(store);
+  return store[date];
+}
+
+const isDemoUser = (userId: string) => userId === "demo_user_id";
+
 // --- Attendance ---
 
 export async function getTodayAttendance() {
   const user = await getCurrentUser();
   if (!user) return null;
 
-  // Demo fallback
-  if (user.id === "demo_user_id") return null;
-
   const today = new Date().toISOString().split('T')[0];
+
+  // Demo fallback
+  if (isDemoUser(user.id)) {
+    const store = await getDemoAttendanceStore();
+    return store[today] ?? null;
+  }
 
   try {
     const attendance = await prisma.attendance.findUnique({
@@ -99,10 +150,18 @@ export async function getTodayAttendance() {
 
 export async function clockIn() {
   const user = await getCurrentUser();
-  if (!user || user.id === "demo_user_id") return;
+  if (!user) return;
 
   const now = new Date();
   const today = now.toISOString().split('T')[0];
+
+  if (isDemoUser(user.id)) {
+    await updateDemoAttendance(today, {
+      startTime: now.toISOString(),
+      status: "working",
+    });
+    return;
+  }
 
   try {
     await prisma.attendance.create({
@@ -120,10 +179,18 @@ export async function clockIn() {
 
 export async function clockOut() {
   const user = await getCurrentUser();
-  if (!user || user.id === "demo_user_id") return;
+  if (!user) return;
 
   const now = new Date();
   const today = now.toISOString().split('T')[0];
+
+  if (isDemoUser(user.id)) {
+    await updateDemoAttendance(today, {
+      endTime: now.toISOString(),
+      status: "left",
+    });
+    return;
+  }
 
   try {
     await prisma.attendance.update({
@@ -145,10 +212,18 @@ export async function clockOut() {
 
 export async function startBreak() {
   const user = await getCurrentUser();
-  if (!user || user.id === "demo_user_id") return;
+  if (!user) return;
 
   const now = new Date();
   const today = now.toISOString().split('T')[0];
+
+  if (isDemoUser(user.id)) {
+    await updateDemoAttendance(today, {
+      breakStartTime: now.toISOString(),
+      status: "break",
+    });
+    return;
+  }
 
   try {
     await prisma.attendance.update({
@@ -170,10 +245,18 @@ export async function startBreak() {
 
 export async function endBreak() {
   const user = await getCurrentUser();
-  if (!user || user.id === "demo_user_id") return;
+  if (!user) return;
 
   const now = new Date();
   const today = now.toISOString().split('T')[0];
+
+  if (isDemoUser(user.id)) {
+    await updateDemoAttendance(today, {
+      breakEndTime: now.toISOString(),
+      status: "working",
+    });
+    return;
+  }
 
   try {
     await prisma.attendance.update({
@@ -196,7 +279,14 @@ export async function endBreak() {
 export async function getRecentAttendance() {
   const user = await getCurrentUser();
   if (!user) return [];
-  if (user.id === "demo_user_id") return [];
+
+  if (isDemoUser(user.id)) {
+    const store = await getDemoAttendanceStore();
+    const records = Object.values(store)
+      .sort((a, b) => (a.date < b.date ? 1 : -1))
+      .slice(0, 3);
+    return records;
+  }
 
   try {
     const records = await prisma.attendance.findMany({
@@ -219,7 +309,24 @@ export async function updateAttendance(
   breakEndTime: string | null
 ) {
   const user = await getCurrentUser();
-  if (!user || user.id === "demo_user_id") return;
+  if (!user) return;
+
+  // Demo fallback
+  if (isDemoUser(user.id)) {
+    const toIso = (timeStr: string | null) => {
+      if (!timeStr) return null;
+      return new Date(`${date}T${timeStr}`).toISOString();
+    };
+
+    await updateDemoAttendance(date, {
+      startTime: toIso(startTime),
+      endTime: toIso(endTime),
+      breakStartTime: toIso(breakStartTime),
+      breakEndTime: toIso(breakEndTime),
+      status: endTime ? "left" : "working",
+    });
+    return;
+  }
 
   try {
     // Helper to combine date string and time string into ISO Date
