@@ -41,3 +41,19 @@ yarn-error.log*
 next-env.d.ts
 
 /lib/generated/prisma
+
+test_output.txt
+
+test_output_2.txt
+
+eslint_output.txt
+
+eslint_output_2.txt
+
+eslint_output_3.txt
+
+tsc_output.txt
+
+eslint_full.json
+
+eslint_final.txt
