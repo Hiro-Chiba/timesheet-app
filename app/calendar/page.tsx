@@ -183,7 +183,7 @@ export default function CalendarPage() {
       <div className="lg:w-80">
         <Card className="sticky top-24">
           <CardHeader>
-            <CardTitle className="text-lg">シフト編集 (自分)</CardTitle>
+            <CardTitle className="text-lg">自分のシフト編集</CardTitle>
           </CardHeader>
           <CardContent>
             {selectedDate ? (
