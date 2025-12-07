@@ -17,7 +17,7 @@ export default function HomeClient({ initialStatus }: HomeClientProps) {
   const [currentStatus, setCurrentStatus] = useState(initialStatus);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Sync with prop if it changes (e.g. after router.refresh())
+  // 初期ステータスが変わった場合に同期する（router.refresh() 後など）
   useEffect(() => {
     setCurrentStatus(initialStatus);
   }, [initialStatus]);
@@ -27,7 +27,7 @@ export default function HomeClient({ initialStatus }: HomeClientProps) {
     try {
       await action();
       setCurrentStatus(newStatus);
-      router.refresh(); // Refresh server data
+      router.refresh(); // サーバーの最新データを反映
     } catch (error) {
       console.error("Action failed:", error);
     } finally {
@@ -37,12 +37,12 @@ export default function HomeClient({ initialStatus }: HomeClientProps) {
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 h-full">
-      {/* Left Column: History */}
+      {/* 左カラム：履歴 */}
       <div className="lg:col-span-1">
         <StampHistory />
       </div>
 
-      {/* Right Column: Clock & Actions */}
+      {/* 右カラム：時計と操作ボタン */}
       <div className="lg:col-span-2 flex flex-col justify-center items-center p-4 lg:p-12">
         <div className="mb-8 flex items-center gap-2">
           <span className="text-gray-500">現在のステータス:</span>

@@ -17,8 +17,6 @@ import { getCurrentUser } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
 
-// ... (imports)
-
 export default async function RootLayout({
   children,
 }: Readonly<{

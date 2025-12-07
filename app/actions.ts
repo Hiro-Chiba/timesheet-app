@@ -14,7 +14,7 @@ const normalizeRole = (role: string | null): AllowedRole => {
   return allowedRoles.includes(lower as AllowedRole) ? (lower as AllowedRole) : "user";
 };
 
-// --- Authentication ---
+// --- 認証関連 ---
 
 export async function login(formData: FormData) {
   const email = (formData.get("email") as string | null)?.toLowerCase();
@@ -30,23 +30,23 @@ export async function login(formData: FormData) {
     });
 
     if (user && (await bcrypt.compare(password, user.password))) {
-      // Set session cookie
+      // セッション用クッキーを設定
       (await cookies()).set("auth_token", user.id, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 24 * 7, // 1 week
+        maxAge: 60 * 60 * 24 * 7, // 1週間
         path: "/",
       });
       redirect("/");
     }
   } catch (error) {
     console.error("Login error:", error);
-    // Fallback for demo if DB is not set up or empty
+    // デモ用の簡易認証（DBが未設定の場合など）
     if (email === "admin@example.com" && password === "password123") {
        (await cookies()).set("auth_token", "demo_user_id", {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        maxAge: 60 * 60 * 24 * 7, // 1 week
+        maxAge: 60 * 60 * 24 * 7, // 1週間
         path: "/",
       });
       redirect("/");
@@ -133,7 +133,7 @@ export async function getCurrentUser() {
   const token = (await cookies()).get("auth_token")?.value;
   if (!token) return null;
 
-  // Demo fallback
+  // デモユーザー用の代替データ
   if (token === "demo_user_id") {
     return { id: "demo_user_id", name: "山田 太郎", email: "admin@example.com", role: "admin" };
   }
@@ -149,7 +149,7 @@ export async function getCurrentUser() {
   }
 }
 
-// --- Demo data helpers ---
+// --- デモデータ管理 ---
 
 type DemoAttendance = {
   date: string;
@@ -197,7 +197,7 @@ async function updateDemoAttendance(
 
 const isDemoUser = (userId: string) => userId === "demo_user_id";
 
-// --- Attendance ---
+// --- 勤怠処理 ---
 
 export async function getTodayAttendance() {
   const user = await getCurrentUser();
@@ -205,7 +205,7 @@ export async function getTodayAttendance() {
 
   const today = new Date().toISOString().split('T')[0];
 
-  // Demo fallback
+  // デモモード用の代替処理
   if (isDemoUser(user.id)) {
     const store = await getDemoAttendanceStore();
     return store[today] ?? null;
@@ -390,7 +390,7 @@ export async function updateAttendance(
   const user = await getCurrentUser();
   if (!user) return;
 
-  // Demo fallback
+  // デモモード用の代替処理
   if (isDemoUser(user.id)) {
     const toIso = (timeStr: string | null) => {
       if (!timeStr) return null;
@@ -408,7 +408,7 @@ export async function updateAttendance(
   }
 
   try {
-    // Helper to combine date string and time string into ISO Date
+    // 日付文字列と時刻文字列を組み合わせて ISO Date を作る補助関数
     const toDate = (timeStr: string | null) => {
       if (!timeStr) return null;
       return new Date(`${date}T${timeStr}`);
@@ -434,7 +434,7 @@ export async function updateAttendance(
         endTime: toDate(endTime),
         breakStartTime: toDate(breakStartTime),
         breakEndTime: toDate(breakEndTime),
-        status: 'left', // Default to left if manually creating past record
+        status: 'left', // 過去日を手動で作成する場合はデフォルトで退勤扱い
       },
     });
   } catch (error) {
@@ -443,13 +443,13 @@ export async function updateAttendance(
   }
 }
 
-// --- Shifts ---
+// --- シフト処理 ---
 
 export async function getShifts(year: number, month: number) {
   const user = await getCurrentUser();
   if (!user) return [];
 
-  // Demo fallback
+  // デモモード用の代替処理
   if (user.id === "demo_user_id") return [];
 
   const startDate = new Date(year, month, 1).toISOString().split('T')[0];
@@ -506,7 +506,7 @@ export async function addShift(date: string, startTime: string, endTime: string)
   if (!user || user.id === "demo_user_id") return;
 
   try {
-    // Upsert shift for that day
+    // 同じ日付のシフトを登録・更新する
     await prisma.shift.upsert({
       where: {
         userId_date: {
@@ -543,15 +543,15 @@ export async function deleteShift(id: string) {
   }
 }
 
-// --- Admin ---
+// --- 管理者向け処理 ---
 
 export async function getAllAttendance(year: number, month: number) {
   const user = await getCurrentUser();
-  if (!user) return []; // Should verify role here
+  if (!user) return []; // 本来は権限チェックを行う
 
-  // Demo fallback
+  // デモモード用の代替処理
   if (user.id === "demo_user_id") {
-      // Return mock data structure if needed, or just empty
+      // 必要ならモックデータを返すが、ここでは空を返す
       return [];
   }
 

@@ -1,5 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+// Prisma スキーマファイル
+// 詳細: https://pris.ly/d/prisma-schema
 
 generator client {
   provider = "prisma-client-js"
@@ -15,7 +15,7 @@ model User {
   email     String   @unique
   name      String?
   password  String
-  role      String   @default("user") // "admin", "manager", "user"
+  role      String   @default("user") // "admin", "manager", "user" のいずれか
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -26,12 +26,12 @@ model User {
 model Attendance {
   id             String    @id @default(uuid())
   userId         String
-  date           String    // YYYY-MM-DD
+  date           String    // YYYY-MM-DD 形式
   startTime      DateTime?
   endTime        DateTime?
   breakStartTime DateTime?
   breakEndTime   DateTime?
-  status         String    // "working", "break", "left"
+  status         String    // "working" / "break" / "left"
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
 
@@ -43,9 +43,9 @@ model Attendance {
 model Shift {
   id        String   @id @default(uuid())
   userId    String
-  date      String   // YYYY-MM-DD
-  startTime String   // HH:mm
-  endTime   String   // HH:mm
+  date      String   // YYYY-MM-DD 形式
+  startTime String   // HH:mm 形式
+  endTime   String   // HH:mm 形式
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

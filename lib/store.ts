@@ -6,28 +6,28 @@ export type AttendanceStatus = 'working' | 'break' | 'left';
 
 export interface AttendanceRecord {
   id: string;
-  date: string; // YYYY-MM-DD
-  startTime: string | null; // ISO string
-  endTime: string | null; // ISO string
-  breakStartTime: string | null; // ISO string
-  breakEndTime: string | null; // ISO string
+  date: string; // YYYY-MM-DD 形式
+  startTime: string | null; // ISO 文字列
+  endTime: string | null; // ISO 文字列
+  breakStartTime: string | null; // ISO 文字列
+  breakEndTime: string | null; // ISO 文字列
   status: AttendanceStatus;
   isEdited: boolean;
 }
 
 export interface Shift {
   id: string;
-  date: string; // YYYY-MM-DD
-  startTime: string; // HH:mm
-  endTime: string; // HH:mm
+  date: string; // YYYY-MM-DD 形式
+  startTime: string; // HH:mm 形式
+  endTime: string; // HH:mm 形式
 }
 
 interface TimeStore {
   currentStatus: AttendanceStatus;
   records: AttendanceRecord[];
   shifts: Shift[];
-  
-  // Actions
+
+  // アクション
   clockIn: () => void;
   clockOut: () => void;
   startBreak: () => void;
@@ -51,11 +51,9 @@ export const useTimeStore = create<TimeStore>()(
         const existing = get().records.find(r => r.date === todayStr);
 
         if (existing) {
-          // Already has a record for today, maybe resuming? 
-          // For simplicity, if clocked out, we might not allow clock in again without edit.
-          // But let's assume simple flow: if 'left', can clock in again? 
-          // Let's stick to: One record per day for this simple app.
-          return; 
+          // 既に当日の記録がある場合は新規作成しない
+          // 本来は再入室を許可するなどの分岐が必要だが、シンプルに1日1件に制限
+          return;
         }
 
         const newRecord: AttendanceRecord = {
@@ -141,7 +139,7 @@ export const useTimeStore = create<TimeStore>()(
           endTime,
         };
         set(state => ({
-          shifts: [...state.shifts.filter(s => s.date !== date), newShift], // Replace existing shift for that day
+          shifts: [...state.shifts.filter(s => s.date !== date), newShift], // 同じ日のシフトは置き換え
         }));
       },
 

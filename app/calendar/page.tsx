@@ -47,7 +47,7 @@ export default function CalendarPage() {
   const monthEnd = endOfMonth(currentDate);
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
 
-  // Calculate padding days for the grid (start from Sunday)
+  // カレンダーを日曜始まりで並べるための余白数
   const startDayOfWeek = getDay(monthStart);
   const paddingDays = Array.from({ length: startDayOfWeek });
 
@@ -56,7 +56,7 @@ export default function CalendarPage() {
 
   const handleDateClick = (date: Date) => {
     setSelectedDate(date);
-    // Pre-fill if exists for CURRENT USER
+    // 選択した日付に自分のシフトがあれば値を事前入力
     const dateStr = format(date, "yyyy-MM-dd");
     const myShift = shifts.find(s => s.date === dateStr && s.userId === currentUserId);
     
@@ -74,8 +74,8 @@ export default function CalendarPage() {
     const dateStr = format(selectedDate, "yyyy-MM-dd");
     try {
       await addShift(dateStr, startTime, endTime);
-      
-      // Refresh data
+
+      // 保存後に表示を更新
       const year = currentDate.getFullYear();
       const month = currentDate.getMonth();
       const fetchedShifts = await getAllShifts(year, month);
@@ -97,8 +97,8 @@ export default function CalendarPage() {
     if (myShift) {
       try {
         await deleteShift(myShift.id);
-        
-        // Refresh data
+
+        // 削除後に表示を更新
         const year = currentDate.getFullYear();
         const month = currentDate.getMonth();
         const fetchedShifts = await getAllShifts(year, month);
@@ -115,7 +115,7 @@ export default function CalendarPage() {
 
   return (
     <div className="flex flex-col lg:flex-row gap-8 h-full">
-      {/* Calendar Grid */}
+      {/* カレンダー */}
       <Card className="flex-1 border-none shadow-none bg-transparent lg:bg-white lg:border lg:border-gray-200 lg:shadow-sm">
         <CardHeader className="flex flex-row items-center justify-between pb-4">
           <CardTitle className="text-xl font-bold text-gray-900">
@@ -179,7 +179,7 @@ export default function CalendarPage() {
         </CardContent>
       </Card>
 
-      {/* Shift Edit Panel */}
+      {/* シフト編集パネル */}
       <div className="lg:w-80">
         <Card className="sticky top-24">
           <CardHeader>

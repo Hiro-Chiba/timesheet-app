@@ -8,7 +8,7 @@ import { ja } from "date-fns/locale";
 import { useState, useEffect } from "react";
 import { getAllAttendance } from "@/app/actions";
 
-// Type definition for the data we display
+// 画面表示用の型定義
 interface DisplayUser {
   id: string;
   name: string | null;
@@ -22,13 +22,13 @@ interface DisplayUser {
 export default function AdminPage() {
   const [currentDate] = useState(new Date());
   const [currentYear, setCurrentYear] = useState(currentDate.getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth()); // 0-11
+  const [selectedMonth, setSelectedMonth] = useState(currentDate.getMonth()); // 0-11 の月インデックス
   const [users, setUsers] = useState<DisplayUser[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const months = Array.from({ length: 12 }, (_, i) => i);
 
-  // Calculate days for the selected month in the selected year
+  // 選択中の年・月の日付一覧
   const monthStart = startOfMonth(new Date(currentYear, selectedMonth, 1));
   const monthEnd = endOfMonth(new Date(currentYear, selectedMonth, 1));
   const daysInMonth = eachDayOfInterval({ start: monthStart, end: monthEnd });
@@ -39,16 +39,14 @@ export default function AdminPage() {
       try {
         const data = await getAllAttendance(currentYear, selectedMonth);
         
-        // Transform data for display
+        // 画面表示用に整形
         const transformedUsers: DisplayUser[] = data.map((user: any) => {
           const attendances = user.attendances.map((record: any) => {
             let hours = 0;
             if (record.startTime && record.endTime) {
               const diff = differenceInMinutes(new Date(record.endTime), new Date(record.startTime));
-              // Subtract break time if we had it, but for now simple diff
-              // If we want to be precise we should subtract break duration
-              // Let's assume simple duration for now
-              hours = Math.round((diff / 60) * 10) / 10; // Round to 1 decimal
+              // 本来は休憩時間を引くべきだが、ここでは単純な差分のみ計算
+              hours = Math.round((diff / 60) * 10) / 10; // 小数第1位で丸め
             }
             return {
               date: record.date,
@@ -142,7 +140,7 @@ export default function AdminPage() {
                   </tr>
                 ) : (
                   users.map((user) => {
-                    // Calculate total for this month only
+                    // 当月分だけの合計を算出
                     let monthlyTotal = 0;
                     const monthlyAttendance = daysInMonth.map((date) => {
                       const dateStr = format(date, 'yyyy-MM-dd');
@@ -152,7 +150,7 @@ export default function AdminPage() {
                       return hours;
                     });
 
-                    // Round total
+                    // 合計も小数第1位で丸める
                     monthlyTotal = Math.round(monthlyTotal * 10) / 10;
 
                     return (
