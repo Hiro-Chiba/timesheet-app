@@ -8,7 +8,7 @@ async function main() {
   const password = 'password123'
   const hashedPassword = await bcrypt.hash(password, 10)
 
-  // 1. Upsert User
+  // 1. ユーザーを作成または更新
   const user = await prisma.user.upsert({
     where: { email },
     update: {},
@@ -22,14 +22,14 @@ async function main() {
 
   console.log({ user })
 
-  // 2. Create Attendance Records (Last 5 days)
+  // 2. 過去5日分の勤怠データを作成
   const today = new Date()
   for (let i = 0; i < 5; i++) {
     const date = new Date(today)
     date.setDate(date.getDate() - i)
     const dateStr = date.toISOString().split('T')[0]
 
-    // Skip if already exists
+    // 既に存在する場合はスキップ
     const existing = await prisma.attendance.findUnique({
       where: {
         userId_date: {
@@ -40,7 +40,7 @@ async function main() {
     })
 
     if (!existing) {
-      // 9:00 - 18:00
+      // 9:00 - 18:00 の勤務
       const startTime = new Date(date)
       startTime.setHours(9, 0, 0, 0)
       const endTime = new Date(date)
@@ -65,7 +65,7 @@ async function main() {
     }
   }
 
-  // 3. Create Shift Records (Next 5 days)
+  // 3. 今後5日分のシフトを作成
   for (let i = 1; i <= 5; i++) {
     const date = new Date(today)
     date.setDate(date.getDate() + i)

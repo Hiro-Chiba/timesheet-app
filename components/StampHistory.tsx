@@ -27,9 +27,7 @@ export function StampHistory() {
   useEffect(() => {
     const fetchRecords = async () => {
       const data = await getRecentAttendance();
-      // Convert string dates back to Date objects if needed, but Prisma returns Date objects for DateTime fields
-      // However, passing from server action to client component serializes dates to strings usually.
-      // Let's handle both.
+      // 受け取った日付文字列を Date に戻す（Prisma では DateTime を返すが、サーバーアクション経由で文字列になる場合がある）
       const parsedData = data.map((r: any) => ({
         ...r,
         startTime: r.startTime ? new Date(r.startTime) : null,
@@ -70,8 +68,8 @@ export function StampHistory() {
         breakStartTime || null,
         breakEndTime || null
       );
-      
-      // Refresh local state
+
+      // 保存後にローカル状態を更新
       const updatedRecords = await getRecentAttendance();
       const parsedData = updatedRecords.map((r: any) => ({
         ...r,
@@ -90,7 +88,7 @@ export function StampHistory() {
     }
   };
 
-  // Helper to format Date to HH:mm for input value
+  // 入力用に Date を HH:mm 形式へ変換するヘルパー
   const toTimeInput = (date: Date | null) => {
     if (!date) return "";
     return format(date, "HH:mm");
