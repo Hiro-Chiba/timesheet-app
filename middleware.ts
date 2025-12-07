@@ -6,12 +6,12 @@ export function middleware(request: NextRequest) {
   const isLoginPage = request.nextUrl.pathname === "/login";
   const isRegisterPage = request.nextUrl.pathname === "/register";
 
-  // トークンがなく、ログイン/登録ページ以外ならログインへリダイレクト
+  // 認証トークンがない場合は、ログイン・登録ページ以外ではログインページにリダイレクトする
   if (!token && !isLoginPage && !isRegisterPage) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  // トークンがある状態でログインまたは登録ページにいる場合はホームへ戻す
+  // トークンがあるままログインまたは登録ページにアクセスした場合はホームへ戻す
   if (token && (isLoginPage || isRegisterPage)) {
     return NextResponse.redirect(new URL("/", request.url));
   }

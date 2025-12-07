@@ -78,11 +78,11 @@ export default function LoginPage() {
             </div>
 
             <div className="text-center text-sm text-gray-500">
-              アカウントをお持ちでない場合は{" "}
+              アカウントをお持ちでない方は{" "}
               <Link href="/register" className="text-blue-600 hover:underline">
                 新規登録
               </Link>
-              へ
+              から作成してください
             </div>
           </form>
         </CardContent>

@@ -130,7 +130,7 @@ export default function RegisterPage() {
               <Link href="/login" className="text-blue-600 hover:underline">
                 ログイン
               </Link>
-              へ
+              からサインインしてください
             </div>
           </form>
         </CardContent>
