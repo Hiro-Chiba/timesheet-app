@@ -13,6 +13,7 @@ export function RealTimeClock() {
       setNow(new Date());
     }, 1000);
     return () => clearInterval(interval);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (!now) return <div className="h-32 animate-pulse bg-gray-100 rounded-lg" />;

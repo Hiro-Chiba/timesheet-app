@@ -1,6 +1,24 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import { create } from 'zustand';
-import Home from '../app/page';
+import HomeClient from '../components/HomeClient';
+
+// Mock next/navigation
+jest.mock("next/navigation", () => ({
+  useRouter() {
+    return {
+      push: jest.fn(),
+      refresh: jest.fn(),
+    };
+  },
+}));
+
+// Mock actions
+jest.mock("@/app/actions", () => ({
+  clockIn: jest.fn(),
+  clockOut: jest.fn(),
+  startBreak: jest.fn(),
+  endBreak: jest.fn(),
+}));
 
 // Mock the store
 const initialStoreState = {
@@ -36,11 +54,12 @@ describe('Home Page', () => {
     // Clear localStorage before each test
     localStorage.clear();
     // Reset store
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (mockStore as any).getState().reset();
   });
 
   it('renders correctly with initial status "Left" (勤務外)', () => {
-    render(<Home />);
+    render(<HomeClient initialStatus="left" />);
     
     // Check status text
     expect(screen.getByText('勤務外')).toBeInTheDocument();
@@ -53,14 +72,14 @@ describe('Home Page', () => {
     expect(screen.queryByRole('button', { name: /休憩開始/i })).not.toBeInTheDocument();
   });
 
-  it('changes status to "Working" (勤務中) when Clock In is clicked', () => {
-    render(<Home />);
+  it('changes status to "Working" (勤務中) when Clock In is clicked', async () => {
+    render(<HomeClient initialStatus="left" />);
     
     const clockInButton = screen.getByRole('button', { name: /出勤/i });
     fireEvent.click(clockInButton);
     
     // Check status updated
-    expect(screen.getByText('勤務中')).toBeInTheDocument();
+    expect(await screen.findByText('勤務中')).toBeInTheDocument();
     
     // Check buttons changed
     expect(screen.queryByRole('button', { name: /出勤/i })).not.toBeInTheDocument();
@@ -68,52 +87,60 @@ describe('Home Page', () => {
     expect(screen.getByRole('button', { name: /休憩開始/i })).toBeInTheDocument();
   });
 
-  it('changes status to "Break" (休憩中) when Break Start is clicked', () => {
-    render(<Home />);
+  it('changes status to "Break" (休憩中) when Break Start is clicked', async () => {
+    render(<HomeClient initialStatus="left" />);
     
     // First clock in
     fireEvent.click(screen.getByRole('button', { name: /出勤/i }));
     
     // Then start break
+    // Wait for Clock In to finish first
+    await screen.findByText('勤務中');
+
     const breakStartButton = screen.getByRole('button', { name: /休憩開始/i });
     fireEvent.click(breakStartButton);
     
     // Check status updated
-    expect(screen.getByText('休憩中')).toBeInTheDocument();
+    expect(await screen.findByText('休憩中')).toBeInTheDocument();
     
     // Check buttons changed
     expect(screen.queryByRole('button', { name: /休憩開始/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /休憩終了/i })).toBeInTheDocument();
   });
 
-  it('changes status back to "Working" when Break End is clicked', () => {
-    render(<Home />);
+  it('changes status back to "Working" when Break End is clicked', async () => {
+    render(<HomeClient initialStatus="left" />);
     
     // Clock in -> Break Start
     fireEvent.click(screen.getByRole('button', { name: /出勤/i }));
+    await screen.findByText('勤務中');
+
     fireEvent.click(screen.getByRole('button', { name: /休憩開始/i }));
-    
+    await screen.findByText('休憩中');
+     
     // End break
     const breakEndButton = screen.getByRole('button', { name: /休憩終了/i });
     fireEvent.click(breakEndButton);
     
     // Check status updated
-    expect(screen.getByText('勤務中')).toBeInTheDocument();
+    expect(await screen.findByText('勤務中')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /休憩開始/i })).toBeInTheDocument();
   });
 
-  it('changes status to "Left" when Clock Out is clicked', () => {
-    render(<Home />);
+  it('changes status to "Left" when Clock Out is clicked', async () => {
+    render(<HomeClient initialStatus="left" />);
     
     // Clock in
     fireEvent.click(screen.getByRole('button', { name: /出勤/i }));
+    await screen.findByText('勤務中');
     
     // Clock out
     const clockOutButton = screen.getByRole('button', { name: /退勤/i });
     fireEvent.click(clockOutButton);
     
     // Check status updated
-    expect(screen.getByText('勤務外')).toBeInTheDocument();
+    expect(await screen.findByText('勤務外')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /出勤/i })).toBeInTheDocument();
   });
 });
+
