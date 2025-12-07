@@ -11,9 +11,9 @@ export const metadata: Metadata = {
   description: "Minimalist time tracking application",
 };
 
-import { cookies } from "next/headers";
 import { logout } from "./actions/auth";
 import { Button } from "@/components/ui/Button";
+import { getCurrentUser } from "@/app/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const isLoggedIn = (await cookies()).has("auth_token");
+  const currentUser = await getCurrentUser();
+  const isLoggedIn = Boolean(currentUser);
+  const displayName = currentUser?.name ?? currentUser?.email ?? "ユーザー";
 
   return (
     <html lang="ja">
@@ -46,15 +48,23 @@ export default async function RootLayout({
                   <Link href="/admin" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
                     管理 (Admin)
                   </Link>
+                  <Link href="/profile" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
+                    プロフィール
+                  </Link>
                 </nav>
               )}
             </div>
             <div className="flex items-center gap-4">
               {isLoggedIn ? (
                 <>
-                  <div className="text-sm text-gray-500 hidden sm:block">
-                    User: <span className="font-medium text-gray-900">山田 太郎</span>
-                  </div>
+                  {currentUser && (
+                    <div className="text-sm text-gray-500 hidden sm:block">
+                      User: <span className="font-medium text-gray-900">{displayName}</span>
+                      <span className="ml-2 inline-flex items-center rounded-full border border-gray-200 px-2 py-0.5 text-[11px] text-gray-600 bg-gray-50">
+                        {currentUser.role}
+                      </span>
+                    </div>
+                  )}
                   <form action={logout}>
                     <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-700 hover:bg-red-50">
                       ログアウト
